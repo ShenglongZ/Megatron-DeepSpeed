@@ -288,16 +288,16 @@ def get_model(model_provider_func):
             pre_process = mpu.is_pipeline_first_stage()
             post_process = mpu.is_pipeline_last_stage()
             this_model = model_provider_func(
-                pre_process=pre_process,
-                post_process=post_process
+                # pre_process=pre_process,
+                # post_process=post_process
             )
             model.append(this_model)
     else:
         pre_process = mpu.is_pipeline_first_stage()
         post_process = mpu.is_pipeline_last_stage()
         model = model_provider_func(
-            pre_process=pre_process,
-            post_process=post_process
+            # pre_process=pre_process,
+            # post_process=post_process
         )
 
 
@@ -577,7 +577,7 @@ def train_step(forward_step_func, data_iterator,
     if args.deepspeed and args.ds_pipeline_enabled:
         skipped_iter = 0
         num_zeros_in_grad = 0
-        assert isinstance(model[0], deepspeed.PipelineEngine)
+        # assert isinstance(model[0], deepspeed.PipelineEngine)
         loss = model[0].train_batch(data_iter=data_iterator)
         grad_norm = model[0].get_global_grad_norm()
         return {'lm loss' : loss}, skipped_iter, grad_norm, num_zeros_in_grad
@@ -906,7 +906,7 @@ def training_log(loss_dict, total_loss_dict, learning_rate, iteration,
             seq_len = args.actual_seq_length
         hidden_size = args.hidden_size
         num_layers = args.num_layers
-        vocab_size = args.padded_vocab_size
+        # vocab_size = args.padded_vocab_size
 
         samples_per_sec, tflops, approx_parameters_in_billions = throughput_calculator(model, args, elapsed_time, total_iterations)
 

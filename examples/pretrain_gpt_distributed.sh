@@ -2,35 +2,39 @@
 
 # Runs the "345M" parameter model
 
-GPUS_PER_NODE=8
 # Change for multinode config
-MASTER_ADDR=localhost
-MASTER_PORT=6000
-NNODES=1
-NODE_RANK=0
-WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
+DATA_PATH=/mnt/petrelfs/share/images
+T=`date +%m%d%H%M`
+ 
+PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
+NNODES=${NNODES:-1}
+NODE_RANK=${NODE_RANK:-0}
+PORT=${PORT:-29600}
+MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 
-DATA_PATH=<Specify path and file prefix>_text_document
-CHECKPOINT_PATH=<Specify path>
+PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
+MASTER_PORT=29600
 
-DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE --nnodes $NNODES --node_rank $NODE_RANK --master_addr $MASTER_ADDR --master_port $MASTER_PORT"
+WORLD_SIZE=8
+TENSOR_MP_SIZE=2
 
-python -m torch.distributed.launch $DISTRIBUTED_ARGS \
-       pretrain_gpt.py \
+python -m torch.distributed.launch \
+       --nnodes=$NNODES \
+       --node_rank=$NODE_RANK \
+       --master_addr=$MASTER_ADDR \
+       --nproc_per_node=8 \
+       --master_port=$PORT \
+       pretrain_vit.py \
        --num-layers 24 \
        --hidden-size 1024 \
        --num-attention-heads 16 \
-       --micro-batch-size 8 \
-       --global-batch-size 64 \
+       --micro-batch-size 16 \
+       --global-batch-size 128 \
        --seq-length 1024 \
        --max-position-embeddings 1024 \
        --train-iters 500000 \
        --lr-decay-iters 320000 \
-       --save $CHECKPOINT_PATH \
-       --load $CHECKPOINT_PATH \
        --data-path $DATA_PATH \
-       --vocab-file gpt2-vocab.json \
-       --merge-file gpt2-merges.txt \
        --data-impl mmap \
        --split 949,50,1 \
        --distributed-backend nccl \
@@ -45,4 +49,8 @@ python -m torch.distributed.launch $DISTRIBUTED_ARGS \
        --save-interval 10000 \
        --eval-interval 1000 \
        --eval-iters 10 \
-       --fp16
+       --no-pipeline-parallel \
+       --tensor-model-parallel-size $TENSOR_MP_SIZE \
+       --deepspeed \
+       --deepspeed_config /mnt/petrelfs/zhangshenglong/Megatron-DeepSpeed/deepspeed_config/zero1_fp16.json \
+       --fp16 2>&1 | tee  test_$T.log

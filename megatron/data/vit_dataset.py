@@ -41,18 +41,21 @@ def build_train_valid_datasets(data_path, crop_size=224, color_jitter=True):
     )
 
     # validation dataset
-    val_data_path = os.path.join(data_path[0], "val")
-    transform_val = transforms.Compose(
-        [
-            transforms.Resize(crop_size),
-            transforms.CenterCrop(crop_size),
-            transforms.ToTensor(),
-            normalize,
-            fp16_t
-        ]
-    )
-    val_data = datasets.ImageFolder(
-        root=val_data_path, transform=transform_val
-    )
+    # val_data_path = os.path.join(data_pa,th[0], "val")
+    # val_data_path = os.path.join(data_pa,th[0], "val")
+    # val_data_path = data_path[0]
+    # transform_val = transforms.Compose(
+    #     [
+    #         transforms.Resize(crop_size),
+    #         transforms.CenterCrop(crop_size),
+    #         transforms.ToTensor(),
+    #         normalize,
+    #         fp16_t
+    #     ]
+    # )
+    # import pdb;pdb.set_trace()
+    # val_data = datasets.ImageFolder(
+    #     root=val_data_path, transform=transform_val
+    # )
 
-    return train_data, val_data
+    return train_data, None

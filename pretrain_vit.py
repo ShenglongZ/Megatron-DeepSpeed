@@ -16,13 +16,16 @@
 """Pretrain VIT"""
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from megatron import get_args, get_timers, mpu, print_rank_0
 from megatron.data.vit_dataset import build_train_valid_datasets
 from megatron.model.vit_model import VitModel
 from megatron.training import pretrain
 from megatron.utils import average_losses_across_data_parallel_group
+from megatron.mpu.initialize import get_tensor_model_parallel_group, get_tensor_model_parallel_src_rank
 
+from deepspeed.accelerator.real_accelerator import get_accelerator
 def model_provider():
     """Build the model."""
 
@@ -42,22 +45,46 @@ def get_batch(data_iterator):
 
     return images, labels
 
-def forward_step(data_iterator, model, input_tensor):
+def forward_step(data_iterator, model):
     """Forward step."""
     timers = get_timers()
-    assert input_tensor is None
 
     # Get the batch.
-    timers("batch-generator").start()
-    (
-        images,
-        labels,
-    ) = get_batch(data_iterator)
-    timers("batch-generator").stop()
+
+    # Broadcast data.
+    if data_iterator is not None:
+        data = next(data_iterator)
+        images = data[0].to(get_accelerator().device_name())
+        labels = data[1].to(get_accelerator().device_name())
+        # print(type(data))
+        # print(len(data))
+        # print(data[0].size())
+        # print(data[1].size())
+    else:
+        data = None
+        images = torch.empty([16, 3, 224, 224]).to(get_accelerator().device_name())
+        labels = torch.empty([16]).to(get_accelerator().device_name())
+    torch.distributed.broadcast(images, get_tensor_model_parallel_src_rank(),
+                                group=get_tensor_model_parallel_group())
+    torch.distributed.broadcast(labels, get_tensor_model_parallel_src_rank(),
+                                group=get_tensor_model_parallel_group())
+    torch.distributed.barrier()
+    torch.cuda.synchronize()
+    # data_b = mpu.broadcast_data(keys, data, datatype)
+    train_loss_fn = nn.CrossEntropyLoss()
+    train_loss_fn = train_loss_fn.cuda()
+    # timers("batch-generator").start()
+    # (
+    #     images,
+    #     labels,
+    # ) = get_batch(data_iterator)
+    # timers("batch-generator").stop()
 
     # Forward model. lm_labels
     logits = model(images).contiguous().float()
-    loss = F.cross_entropy(logits, labels)
+
+    labels = labels.type(torch.LongTensor).cuda()
+    loss = train_loss_fn(logits, labels)
 
     outputs = torch.argmax(logits, -1)
     correct = (outputs == labels).float()
@@ -75,10 +102,10 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
     print_rank_0(
         "> building train, validation, and test datasets " "for VIT ..."
     )
-    train_ds, valid_ds = build_train_valid_datasets(data_path=args.data_path)
+    train_ds, _ = build_train_valid_datasets(data_path=args.data_path)
     print_rank_0("> finished creating VIT datasets ...")
 
-    return train_ds, valid_ds, None
+    return train_ds, None, None
 
 
 if __name__ == "__main__":
