@@ -149,7 +149,7 @@ def main():
     fin = open(args.input, 'r', encoding='utf-8')
 
     if nltk_available and args.split_sentences:
-        nltk.download("punkt", quiet=True)
+        nltk.download("punkt", quiet=False)
 
     encoder = Encoder(args)
     tokenizer = build_tokenizer(args)

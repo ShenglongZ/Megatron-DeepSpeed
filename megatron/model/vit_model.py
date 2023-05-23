@@ -204,7 +204,7 @@ class VitModel(MegatronModule):
         x = self.transformer(x, None)
 
         if not self.finetune:
-            x = self.mlp_head(x)
+            x = self.mlp_head(x[0])
         else:
             x = self.class_head(x[:, 0, :])
 

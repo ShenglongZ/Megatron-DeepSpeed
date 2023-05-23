@@ -12,12 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from deepspeed.accelerator import get_accelerator
 
-from mpu import layers
-from commons import set_random_seed
-from commons import print_separator
-from commons import initialize_distributed
-import mpu
+from megatron.mpu import layers
+from megatron.mpu.tests.commons import set_random_seed
+from megatron.mpu.tests.commons import print_separator
+from megatron.mpu.tests.commons import initialize_distributed
+from megatron import mpu
 from torch.nn.parameter import Parameter
 import torch.nn.init as init
 import torch
@@ -123,7 +124,7 @@ def test_initialize_affine_weight(tensor_model_parallel_size):
     # ---------------
     weight = torch.empty(output_size_coeff, input_size)
     set_random_seed(seed)
-    layers._initialize_affine_weight(weight, output_size, input_size,
+    layers._initialize_affine_weight_cpu(weight, output_size, input_size,
 
                                      output_size_coeff, 0,
                                      torch.nn.init.normal_)
@@ -147,7 +148,7 @@ def test_initialize_affine_weight(tensor_model_parallel_size):
     # ------------
     weight = torch.empty(output_size, input_size_coeff)
     set_random_seed(seed)
-    mpu.layers._initialize_affine_weight(weight, output_size, input_size,
+    mpu.layers._initialize_affine_weight_cpu(weight, output_size, input_size,
                                          input_size_coeff, 1,
                                          torch.nn.init.normal_)
     # Target.

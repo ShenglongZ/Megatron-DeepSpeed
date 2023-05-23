@@ -22,11 +22,11 @@ import torch
 import deepspeed
 
 def parse_args(extra_args_provider=None, defaults={},
-               ignore_unknown_args=False):
+               ignore_unknown_args=False, parser=None):
     """Parse all arguments."""
-    parser = argparse.ArgumentParser(description='Megatron-LM Arguments',
+    if parser is None:
+        parser = argparse.ArgumentParser(description='Megatron-LM Arguments',
                                      allow_abbrev=False)
-
     # Standard arguments.
     parser = _add_network_size_args(parser)
     parser = _add_regularization_args(parser)
